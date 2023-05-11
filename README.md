@@ -11,3 +11,6 @@ Sample HTTP POST request for Postman :
 
 get a specific Request URL = "http://localhost:3000/api/comments/2"
 
+.env needed data<br>
+DATABASE_URL="postgresql://johndoe:randompassword@localhost:5432/mydb?schema=public"<br>
+PORT=3000
