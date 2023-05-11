@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import Joi from "joi";
 const prisma = new PrismaClient();
 
 const getComments = async (req, res) => {
@@ -26,26 +27,41 @@ const getComments = async (req, res) => {
   "content": "Test"
 }
 */
+
+const commentSchema = Joi.object({
+  firstName: Joi.string().required(),
+  lastName: Joi.string().required(),
+  content: Joi.string().max(300).required(),
+});
+
 const createComment = async (req, res) => {
-    try {
-      const { firstName, lastName, content } = req.body; // destructuring object
-  
-      await prisma.comment.create({
-        data: { firstName, lastName, content },
-      });
-  
-      const newComments = await prisma.comment.findMany({});
-  
-      return res.status(201).json({
-        msg: "Comment successfully created",
-        data: newComments,
-      });
-    } catch (err) {
-      return res.status(500).json({
-        msg: err.message,
+  try {
+    const { error, value } = commentSchema.validate(req.body);
+
+    if (error) {
+      return res.status(400).json({
+        msg: error.details[0].message,
       });
     }
-  };
+
+    const { firstName, lastName, content } = value; // destructuring validated object
+
+    await prisma.comment.create({
+      data: { firstName, lastName, content },
+    });
+
+    const newComments = await prisma.comment.findMany({});
+
+    return res.status(201).json({
+      msg: "Comment successfully created",
+      data: newComments,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      msg: err.message,
+    });
+  }
+};
 
   
 // Sample HTTP PUT request for Postman
@@ -57,35 +73,49 @@ const createComment = async (req, res) => {
 */
 
 const updateComment = async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { firstName, lastName, content } = req.body;
-  
-      let comment = await prisma.comment.findUnique({
-        where: { id: Number(id) },
-      });
-  
-      if (!comment) {
-        return res
-          .status(201)
-          .json({ msg: `No comment with the id: ${id} found` });
-      }
-  
-      comment = await prisma.comment.update({
-        where: { id: Number(id) },
-        data: { firstName, lastName, content },
-      });
-  
-      return res.json({
-        msg: `Comment with the id: ${id} successfully updated`,
-        data: comment,
-      });
-    } catch (err) {
-      return res.status(500).json({
-        msg: err.message,
+  try {
+    const { id } = req.params;
+    const { firstName, lastName, content } = req.body;
+    
+    const updateCommentSchema = Joi.object({
+      firstName: Joi.string(),
+      lastName: Joi.string(),
+      content: Joi.string().max(300),
+    });
+
+    const { error } = updateCommentSchema.validate({ firstName, lastName, content });
+
+    if (error) {
+      return res.status(400).json({
+        msg: error.details[0].message,
       });
     }
-  };
+
+    let comment = await prisma.comment.findUnique({
+      where: { id: Number(id) },
+    });
+
+    if (!comment) {
+      return res
+        .status(201)
+        .json({ msg: `No comment with the id: ${id} found` });
+    }
+
+    comment = await prisma.comment.update({
+      where: { id: Number(id) },
+      data: { firstName, lastName, content },
+    });
+
+    return res.json({
+      msg: `Comment with the id: ${id} successfully updated`,
+      data: comment,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      msg: err.message,
+    });
+  }
+};
 
   const deleteComment = async (req, res) => {
     try {
